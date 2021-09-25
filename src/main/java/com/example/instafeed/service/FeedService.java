@@ -6,6 +6,7 @@ import com.example.instafeed.models.Feed;
 import com.example.instafeed.repository.FeedRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,6 +25,7 @@ public class FeedService {
     @Autowired
     private Environment env;
 
+    @Scheduled(cron = "${ig.sync.interval}")
     public void syncOfTheFeed() {
         String igFeedUrl = this.env.getProperty("ig.feed.url");
         List<FeedDto> feedDtoList = this.fetchIgFeed(igFeedUrl);
