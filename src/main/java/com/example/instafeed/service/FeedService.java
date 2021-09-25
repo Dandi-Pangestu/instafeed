@@ -12,23 +12,27 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class FeedService {
 
-    @Autowired
-    private FeedRepository feedRepository;
+    private final FeedRepository feedRepository;
+    private final RestTemplate restTemplate;
+    private final Environment env;
 
     @Autowired
-    private RestTemplate restTemplate;
-
-    @Autowired
-    private Environment env;
+    public FeedService(FeedRepository feedRepository, RestTemplate restTemplate, Environment env) {
+        this.feedRepository = feedRepository;
+        this.restTemplate = restTemplate;
+        this.env = env;
+    }
 
     @Scheduled(cron = "${ig.sync.interval}")
-    public void syncOfTheFeed() {
+    public int syncOfTheFeed() {
         String igFeedUrl = this.env.getProperty("ig.feed.url");
         List<FeedDto> feedDtoList = this.fetchIgFeed(igFeedUrl);
+        AtomicInteger counter = new AtomicInteger();
 
         feedDtoList.stream()
                 .filter(feedDto -> this.feedRepository.findByIgId(feedDto.getId()) == null)
@@ -42,7 +46,10 @@ public class FeedService {
                             feedDto.getTimestamp()
                     );
                     this.feedRepository.save(feed);
+                    counter.getAndIncrement();
                 });
+
+        return counter.get();
     }
 
     public List<FeedDto> fetchIgFeed(String url) {
